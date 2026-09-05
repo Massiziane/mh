@@ -10,7 +10,13 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const settings = await prisma.siteSettings.findFirst();
+  let settings = null;
+
+  try {
+    settings = await prisma.siteSettings.findFirst();
+  } catch (error) {
+    console.error("Failed to load site settings:", error);
+  }
 
   const businessName =
     settings?.businessName ?? "Marc Houle";
