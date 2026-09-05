@@ -3,6 +3,8 @@ import "./globals.css";
 import SiteChrome from "@/components/layout/SiteChrome";
 import { prisma } from "@/lib/prisma";
 
+export const dynamic = "force-dynamic";
+
 export default async function RootLayout({
   children,
 }: Readonly<{
