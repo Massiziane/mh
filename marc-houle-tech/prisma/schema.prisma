@@ -1,0 +1,99 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ServiceStatus {
+  ACTIVE
+  PENDING
+  OUT_OF_SERVICE
+}
+
+enum OrderStatus {
+  NEW
+  IN_REVIEW
+  ACCEPTED
+  COMPLETED
+  CANCELLED
+}
+
+model Service {
+  id          String        @id @default(cuid())
+  name        String
+  slug        String        @unique
+  description String
+  status      ServiceStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PricingPlan {
+  id                    String   @id @default(cuid())
+  slug                  String   @unique
+  title                 String
+  age                   String
+  price                 Decimal  @db.Decimal(10, 2)
+  description           String
+  additionalDescription String?
+  mainImageUrl           String?
+  galleryUrls            String[] @default([])
+  contractUrl            String?
+  featured               Boolean @default(false)
+  active                 Boolean @default(true)
+  badge                  String?
+  sortOrder              Int     @default(0)
+
+  orders Order[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Order {
+  id           String      @id @default(cuid())
+  name         String
+  phone        String
+  address      String
+  availability String
+  description  String
+  status       OrderStatus @default(NEW)
+
+  signedContractUrl String?
+
+  pricingPlanId String?
+  pricingPlan   PricingPlan? @relation(fields: [pricingPlanId], references: [id])
+
+  images OrderImage[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model OrderImage {
+  id      String @id @default(cuid())
+  url     String
+  orderId String
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model SiteSettings {
+  id String @id @default(cuid())
+
+  businessName String
+  phone        String?
+  email        String?
+  address      String?
+
+  hourlyRate Decimal? @db.Decimal(10, 2)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

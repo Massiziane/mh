@@ -1,6 +1,20 @@
 import Reveal from "@/components/ui/Reveal";
 
-export default function Contact() {
+type ContactProps = {
+  businessName: string;
+  phone: string;
+  email: string;
+  location: string;
+};
+
+export default function Contact({
+  businessName,
+  phone,
+  email,
+  location,
+}: ContactProps) {
+  const phoneHref = phone.replace(/\D/g, "");
+
   return (
     <section className="contact" id="contact">
       <div className="container contact-grid">
@@ -10,30 +24,30 @@ export default function Contact() {
           <h2>Besoin d&apos;aide avec votre technologie?</h2>
 
           <p className="contact-description">
-            Appelez ou écrivez à Marc Houle pour discuter de votre
+            Appelez ou écrivez à {businessName} pour discuter de votre
             situation et voir comment il peut vous accompagner.
           </p>
 
           <div className="contact-links">
             <a
               className="contact-link"
-              href="tel:5146622311"
+              href={`tel:${phoneHref}`}
             >
               <span className="contact-icon">📞</span>
-              <span>514-662-2311</span>
+              <span>{phone}</span>
             </a>
 
             <a
               className="contact-link"
-              href="mailto:marchoule23@gmail.com"
+              href={`mailto:${email}`}
             >
               <span className="contact-icon">✉️</span>
-              <span>marchoule23@gmail.com</span>
+              <span>{email}</span>
             </a>
 
             <div className="contact-link">
               <span className="contact-icon">📍</span>
-              <span>Grand Montréal & Lanaudière</span>
+              <span>{location}</span>
             </div>
           </div>
         </Reveal>
@@ -47,14 +61,14 @@ export default function Contact() {
           </p>
 
           <a
-            href="tel:5146622311"
+            href={`tel:${phoneHref}`}
             className="btn btn-primary"
           >
             📞 Appeler maintenant
           </a>
 
           <a
-            href="mailto:marchoule23@gmail.com"
+            href={`mailto:${email}`}
             className="btn btn-secondary"
           >
             ✉️ Écrire un message

@@ -2,7 +2,13 @@
 
 import { useEffect, useState } from "react";
 
-export default function Navbar() {
+type NavbarProps = {
+  businessName: string;
+};
+
+export default function Navbar({
+  businessName,
+}: NavbarProps) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -38,38 +44,69 @@ export default function Navbar() {
       id="navbar"
     >
       <div className="container nav-inner">
-        <a href="#accueil" className="logo" onClick={closeMenu}>
-          <div className="logo-icon">MH</div>
+        <a
+          href="/"
+          className="logo"
+          onClick={closeMenu}
+        >
+          <div className="logo-icon">
+            MH
+          </div>
 
           <div className="logo-text">
-            Marc Houle
-            <span>Votre expert technologique</span>
+            {businessName}
+
+            <span>
+              Votre expert technologique
+            </span>
           </div>
         </a>
 
         <button
           className="mobile-menu-btn"
-          onClick={() => setMenuOpen((current) => !current)}
-          aria-label={menuOpen ? "Fermer le menu" : "Ouvrir le menu"}
+          onClick={() =>
+            setMenuOpen((current) => !current)
+          }
+          aria-label={
+            menuOpen
+              ? "Fermer le menu"
+              : "Ouvrir le menu"
+          }
           aria-expanded={menuOpen}
         >
           {menuOpen ? "✕" : "☰"}
         </button>
 
-        <div className={`nav-links ${menuOpen ? "open" : ""}`}>
-          <a href="#services" onClick={closeMenu}>
+        <div
+          className={`nav-links ${
+            menuOpen ? "open" : ""
+          }`}
+        >
+          <a
+            href="#services"
+            onClick={closeMenu}
+          >
             Services
           </a>
 
-          <a href="#experience" onClick={closeMenu}>
+          <a
+            href="#experience"
+            onClick={closeMenu}
+          >
             Expérience
           </a>
 
-          <a href="#fonctionnement" onClick={closeMenu}>
+          <a
+            href="#fonctionnement"
+            onClick={closeMenu}
+          >
             Fonctionnement
           </a>
 
-          <a href="#tarifs" onClick={closeMenu}>
+          <a
+            href="#tarifs"
+            onClick={closeMenu}
+          >
             Tarifs
           </a>
 

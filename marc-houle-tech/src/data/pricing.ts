@@ -1,31 +1,42 @@
-export interface PricingPlan {
+export type PricingPlan = {
   age: string;
-  price: number;
+  slug: string;
+  price: string;
   description: string;
-  featured?: boolean;
+  featured: boolean;
   badge?: string;
-}
+};
 
 export const pricingPlans: PricingPlan[] = [
   {
-    age: "50 à 59 ans",
-    price: 3000,
-    description:
-      "Votre accompagnement technologique personnalisé.",
-  },
-  {
     age: "60 à 69 ans",
-    price: 2500,
-    description:
-      "Un accompagnement durable pour votre quotidien numérique.",
-    featured: true,
-    badge: "Formule avantageuse",
+    slug: "60-69-ans",
+    price: "2500",
+    description: "Your existing description",
+    featured: false,
   },
   {
-    age: "70 ans et plus",
-    price: 1500,
+    age: "70 à 79 ans",
+    slug: "70-79-ans",
+    price: "2000",
+    description: "Your existing description",
+    featured: true,
+    badge: "Populaire",
+  },
+  {
+    age: "80 ans et plus",
+    slug: "80-ans-et-plus",
+    price: "1500",
+    description: "Your existing description",
+    featured: false,
+  },
+  {
+    age: "Service régulier",
+    slug: "service-regulier",
+    price: "125",
     description:
-      "Toute l'assistance nécessaire pour profiter pleinement de votre technologie.",
+      "Une assistance informatique flexible, facturée à l'heure, sans contrat à vie.",
+    featured: false,
   },
 ];
 
