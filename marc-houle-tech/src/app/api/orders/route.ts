@@ -23,6 +23,7 @@ const allowedContracts = [
 
 function getText(form: FormData, key: string) {
   const value = form.get(key);
+
   return typeof value === "string"
     ? value.trim()
     : "";
@@ -39,32 +40,41 @@ function validFile(
   );
 }
 
+function validEmail(email: string) {
+  return (
+    email.length > 0 &&
+    email.length <= 254 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  );
+}
+
 export async function POST(request: Request) {
   try {
     const apiKey = process.env.RESEND_API_KEY;
     const emailFrom = process.env.EMAIL_FROM;
     const adminEmail = process.env.ADMIN_EMAIL;
 
-    if (!apiKey || !emailFrom || !adminEmail) {
-      console.error("Missing email configuration");
-
-      return NextResponse.json(
-        { error: "Service temporairement indisponible." },
-        { status: 503 }
-      );
-    }
-
     const form = await request.formData();
 
+    // ==========================================
+    // CUSTOMER INFORMATION
+    // ==========================================
+
     const name = getText(form, "name");
+    const email = getText(form, "email").toLowerCase();
     const phone = getText(form, "phone");
     const address = getText(form, "address");
     const availability = getText(form, "availability");
     const description = getText(form, "description");
     const pricingPlanId = getText(form, "pricingPlanId");
 
+    // ==========================================
+    // REQUIRED FIELDS
+    // ==========================================
+
     if (
       !name ||
+      !email ||
       !phone ||
       !address ||
       !availability ||
@@ -72,10 +82,31 @@ export async function POST(request: Request) {
       !pricingPlanId
     ) {
       return NextResponse.json(
-        { error: "Veuillez remplir tous les champs." },
+        {
+          error:
+            "Veuillez remplir tous les champs obligatoires.",
+        },
         { status: 400 }
       );
     }
+
+    // ==========================================
+    // EMAIL VALIDATION
+    // ==========================================
+
+    if (!validEmail(email)) {
+      return NextResponse.json(
+        {
+          error:
+            "Veuillez entrer une adresse courriel valide.",
+        },
+        { status: 400 }
+      );
+    }
+
+    // ==========================================
+    // FIELD LENGTH VALIDATION
+    // ==========================================
 
     if (
       name.length > 150 ||
@@ -85,21 +116,36 @@ export async function POST(request: Request) {
       description.length > 5000
     ) {
       return NextResponse.json(
-        { error: "Certains champs sont trop longs." },
+        {
+          error:
+            "Certains champs dépassent la longueur autorisée.",
+        },
         { status: 400 }
       );
     }
 
+    // ==========================================
+    // PRICING PLAN VALIDATION
+    // ==========================================
+
     const plan = await prisma.pricingPlan.findUnique({
-      where: { id: pricingPlanId },
+      where: {
+        id: pricingPlanId,
+      },
     });
 
     if (!plan || !plan.active) {
       return NextResponse.json(
-        { error: "Formule de service invalide." },
+        {
+          error: "Formule de service invalide.",
+        },
         { status: 400 }
       );
     }
+
+    // ==========================================
+    // FILE UPLOADS
+    // ==========================================
 
     const photos = form
       .getAll("photos")
@@ -121,10 +167,16 @@ export async function POST(request: Request) {
 
     if (contractRequired && !contract) {
       return NextResponse.json(
-        { error: "Le contrat signé est requis." },
+        {
+          error: "Le contrat signé est requis.",
+        },
         { status: 400 }
       );
     }
+
+    // ==========================================
+    // PHOTO VALIDATION
+    // ==========================================
 
     if (
       photos.length > MAX_PHOTOS ||
@@ -135,11 +187,15 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error:
-            "Maximum 2 photos, de 1 Mo chacune (JPG, PNG ou WebP).",
+            "Maximum 2 photos de 1 Mo chacune (JPG, PNG ou WebP).",
         },
         { status: 400 }
       );
     }
+
+    // ==========================================
+    // CONTRACT VALIDATION
+    // ==========================================
 
     if (
       contract &&
@@ -154,43 +210,65 @@ export async function POST(request: Request) {
       );
     }
 
+    // ==========================================
+    // TOTAL UPLOAD SIZE
+    // ==========================================
+
     const totalSize =
-      photos.reduce((sum, file) => sum + file.size, 0) +
-      (contract?.size ?? 0);
+      photos.reduce(
+        (sum, file) => sum + file.size,
+        0
+      ) + (contract?.size ?? 0);
 
     if (totalSize > MAX_TOTAL_SIZE) {
       return NextResponse.json(
-        { error: "Les fichiers sont trop volumineux." },
+        {
+          error:
+            "Les fichiers dépassent la taille totale autorisée de 3 Mo.",
+        },
         { status: 400 }
       );
     }
 
+    // ==========================================
+    // PREPARE EMAIL ATTACHMENTS
+    // ==========================================
+
     const attachments = await Promise.all(
-      [...photos, ...(contract ? [contract] : [])].map(
-        async (file, index) => ({
-          filename: `${
-            index < photos.length ? "photo" : "contrat"
-          }-${index + 1}.${
-            file.type === "application/pdf"
-              ? "pdf"
-              : file.type === "image/png"
-                ? "png"
-                : file.type === "image/webp"
-                  ? "webp"
-                  : "jpg"
-          }`,
+      [
+        ...photos,
+        ...(contract ? [contract] : []),
+      ].map(async (file, index) => {
+        const extension =
+          file.type === "application/pdf"
+            ? "pdf"
+            : file.type === "image/png"
+              ? "png"
+              : file.type === "image/webp"
+                ? "webp"
+                : "jpg";
+
+        const isPhoto = index < photos.length;
+
+        return {
+          filename: isPhoto
+            ? `photo-${index + 1}.${extension}`
+            : `contrat-signe.${extension}`,
           content: Buffer.from(
             await file.arrayBuffer()
           ).toString("base64"),
-        })
-      )
+        };
+      })
     );
 
-    // Save customer request in PostgreSQL.
-    // Files are sent by email, not stored in Prisma.
+    // ==========================================
+    // SAVE CUSTOMER REQUEST
+    // ==========================================
+
     const order = await prisma.order.create({
       data: {
         name,
+        email,
         phone,
         address,
         availability,
@@ -200,46 +278,76 @@ export async function POST(request: Request) {
       },
     });
 
-    const resend = new Resend(apiKey);
-
-    const emailText = [
-      "Nouvelle demande de service",
-      "",
-      `Numéro : ${order.id}`,
-      `Formule : ${plan.title}`,
-      `Client : ${name}`,
-      `Téléphone : ${phone}`,
-      `Adresse : ${address}`,
-      `Disponibilités : ${availability}`,
-      "",
-      "Description :",
-      description,
-      "",
-      `Photos : ${photos.length}`,
-      `Contrat signé : ${contract ? "Oui" : "Non"}`,
-      "",
-      "Consultez le tableau de bord administrateur.",
-    ].join("\n");
+    // ==========================================
+    // ADMIN EMAIL NOTIFICATION
+    // ==========================================
 
     let emailSent = false;
 
-    try {
-      const { error } = await resend.emails.send({
-        from: emailFrom,
-        to: [adminEmail],
-        subject: `Nouvelle demande - ${plan.title}`,
-        text: emailText,
-        attachments,
-      });
+    if (!apiKey || !emailFrom || !adminEmail) {
+      console.error(
+        "Missing Resend email configuration."
+      );
+    } else {
+      const resend = new Resend(apiKey);
 
-      if (error) {
-        console.error("Email delivery failed:", error);
-      } else {
-        emailSent = true;
+      const emailText = [
+        "NOUVELLE DEMANDE DE SERVICE",
+        "",
+        `Référence : ${order.id}`,
+        `Formule : ${plan.title}`,
+        "",
+        "INFORMATIONS DU CLIENT",
+        "",
+        `Nom : ${name}`,
+        `Courriel : ${email}`,
+        `Téléphone : ${phone}`,
+        `Adresse : ${address}`,
+        "",
+        "DISPONIBILITÉS",
+        "",
+        availability,
+        "",
+        "DESCRIPTION DU PROBLÈME",
+        "",
+        description,
+        "",
+        "DOCUMENTS",
+        "",
+        `Photos : ${photos.length}`,
+        `Contrat signé : ${contract ? "Oui" : "Non"}`,
+        "",
+        "Cette demande a été enregistrée dans le tableau de bord administrateur.",
+      ].join("\n");
+
+      try {
+        const { error } = await resend.emails.send({
+          from: emailFrom,
+          to: [adminEmail],
+          subject: `Nouvelle demande - ${plan.title}`,
+          text: emailText,
+          attachments,
+        });
+
+        if (error) {
+          console.error(
+            "Admin notification error:",
+            error
+          );
+        } else {
+          emailSent = true;
+        }
+      } catch (emailError) {
+        console.error(
+          "Admin notification exception:",
+          emailError
+        );
       }
-    } catch (emailError) {
-      console.error("Email delivery error:", emailError);
     }
+
+    // ==========================================
+    // SUCCESS RESPONSE
+    // ==========================================
 
     return NextResponse.json(
       {
@@ -247,18 +355,21 @@ export async function POST(request: Request) {
         orderId: order.id,
         emailSent,
         message: emailSent
-          ? "Demande enregistrée et notification envoyée."
-          : "Demande enregistrée. Notification par courriel indisponible.",
+          ? "Votre demande a été enregistrée avec succès."
+          : "Votre demande a été enregistrée. La notification à notre équipe est temporairement indisponible.",
       },
       { status: 201 }
     );
   } catch (error) {
-    console.error("Order API error:", error);
+    console.error(
+      "Order API error:",
+      error
+    );
 
     return NextResponse.json(
       {
         error:
-          "Une erreur est survenue lors de l'enregistrement.",
+          "Une erreur est survenue lors de l'enregistrement de votre demande.",
       },
       { status: 500 }
     );

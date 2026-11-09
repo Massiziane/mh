@@ -7,6 +7,10 @@ datasource db {
   provider = "postgresql"
 }
 
+// ==========================================
+// ENUMS
+// ==========================================
+
 enum ServiceStatus {
   ACTIVE
   PENDING
@@ -17,9 +21,15 @@ enum OrderStatus {
   NEW
   IN_REVIEW
   ACCEPTED
+  OPEN
+  PLANNED
   COMPLETED
   CANCELLED
 }
+
+// ==========================================
+// SERVICES
+// ==========================================
 
 model Service {
   id          String        @id @default(cuid())
@@ -32,6 +42,10 @@ model Service {
   updatedAt DateTime @updatedAt
 }
 
+// ==========================================
+// PRICING PLANS
+// ==========================================
+
 model PricingPlan {
   id                    String   @id @default(cuid())
   slug                  String   @unique
@@ -40,13 +54,13 @@ model PricingPlan {
   price                 Decimal  @db.Decimal(10, 2)
   description           String
   additionalDescription String?
-  mainImageUrl           String?
-  galleryUrls            String[] @default([])
-  contractUrl            String?
-  featured               Boolean @default(false)
-  active                 Boolean @default(true)
-  badge                  String?
-  sortOrder              Int     @default(0)
+  mainImageUrl          String?
+  galleryUrls           String[] @default([])
+  contractUrl           String?
+  featured              Boolean  @default(false)
+  active                Boolean  @default(true)
+  badge                 String?
+  sortOrder             Int      @default(0)
 
   orders Order[]
 
@@ -54,28 +68,57 @@ model PricingPlan {
   updatedAt DateTime @updatedAt
 }
 
+// ==========================================
+// CUSTOMER REQUESTS & APPOINTMENTS
+// ==========================================
+
 model Order {
-  id           String      @id @default(cuid())
+  id String @id @default(cuid())
+
+  // Customer information
   name         String
+  email        String?
   phone        String
   address      String
   availability String
   description  String
-  status       OrderStatus @default(NEW)
+  appointmentAddress String?
 
+  // Request management
+  status OrderStatus @default(NEW)
+
+  // Appointment scheduling
+  scheduledAt      DateTime?
+  appointmentNotes String?
+
+  // Email confirmation tracking
+  confirmationSentAt DateTime?
+
+  // Documents
   signedContractUrl String?
 
+  // Pricing plan
   pricingPlanId String?
   pricingPlan   PricingPlan? @relation(fields: [pricingPlanId], references: [id])
 
+  // Uploaded images
   images OrderImage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([createdAt])
 }
 
+// ==========================================
+// ORDER IMAGES
+// ==========================================
+
 model OrderImage {
-  id      String @id @default(cuid())
+  id String @id @default(cuid())
+
   url     String
   orderId String
 
@@ -83,6 +126,10 @@ model OrderImage {
 
   createdAt DateTime @default(now())
 }
+
+// ==========================================
+// WEBSITE SETTINGS
+// ==========================================
 
 model SiteSettings {
   id String @id @default(cuid())

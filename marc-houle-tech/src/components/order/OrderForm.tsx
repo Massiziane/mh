@@ -169,6 +169,27 @@ export default function OrderForm({
             className={inputClass}
           />
         </div>
+        
+        {/* Email */}
+        <div>
+          <label
+            htmlFor="email"
+            className="mb-2 block text-sm font-bold"
+          >
+            Adresse courriel
+          </label>
+
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            maxLength={254}
+            autoComplete="email"
+            placeholder="exemple@gmail.com"
+            className="w-full rounded-xl border border-slate-200 px-4 py-3"
+          />
+        </div>
 
         {/* Address */}
         <div>

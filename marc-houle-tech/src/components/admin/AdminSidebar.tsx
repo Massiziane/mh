@@ -10,11 +10,6 @@ const items = [
     icon: "▦",
   },
   {
-    label: "Services",
-    href: "/admin/services",
-    icon: "◆",
-  },
-  {
     label: "Tarifs",
     href: "/admin/pricing",
     icon: "$",

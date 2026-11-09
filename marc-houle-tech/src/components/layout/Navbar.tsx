@@ -77,11 +77,7 @@ export default function Navbar({
           {menuOpen ? "✕" : "☰"}
         </button>
 
-        <div
-          className={`nav-links ${
-            menuOpen ? "open" : ""
-          }`}
-        >
+        <div className="nav-links">
           <a
             href="#services"
             onClick={closeMenu}

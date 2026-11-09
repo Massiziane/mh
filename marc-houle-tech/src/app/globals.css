@@ -96,6 +96,9 @@
 
         section {
             position: relative;
+        }
+
+            section:not(.admin-shell section) {
             padding: 105px 0;
         }
 

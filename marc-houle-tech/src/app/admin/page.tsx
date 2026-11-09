@@ -1,264 +1,354 @@
+
 import Link from "next/link";
-
-import StatCard from "@/components/admin/StatCard";
 import { prisma } from "@/lib/prisma";
+import type { OrderStatus } from "@/generated/prisma/client";
 
-import type { Prisma } from "@/generated/prisma/client";
+const statusConfig: Record<
+  OrderStatus,
+  { label: string; className: string }
+> = {
+  NEW: {
+    label: "Nouvelle",
+    className: "bg-blue-50 text-blue-700 ring-blue-100",
+  },
+  IN_REVIEW: {
+    label: "En cours",
+    className: "bg-amber-50 text-amber-700 ring-amber-100",
+  },
+  ACCEPTED: {
+    label: "Acceptée",
+    className: "bg-emerald-50 text-emerald-700 ring-emerald-100",
+  },
+  OPEN: {
+    label: "Ouverte",
+    className: "bg-cyan-50 text-cyan-700 ring-cyan-100",
+  },
+  PLANNED: {
+    label: "Planifiée",
+    className: "bg-violet-50 text-violet-700 ring-violet-100",
+  },
+  COMPLETED: {
+    label: "Terminée",
+    className: "bg-slate-100 text-slate-600 ring-slate-200",
+  },
+  CANCELLED: {
+    label: "Annulée",
+    className: "bg-red-50 text-red-700 ring-red-100",
+  },
+};
 
-type RecentOrder = Prisma.OrderGetPayload<{
-  include: {
-    pricingPlan: true;
-  };
-}>;
+function formatDate(date: Date) {
+  return new Intl.DateTimeFormat("fr-CA", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "America/Toronto",
+  }).format(date);
+}
 
 export default async function AdminDashboardPage() {
   const [
-    serviceCount,
-    activeServices,
-    pricingCount,
-    orderCount,
-    newOrderCount,
+    newCount,
+    inProgressCount,
+    completedCount,
     recentOrders,
-  ]: [
-    number,
-    number,
-    number,
-    number,
-    number,
-    RecentOrder[]
   ] = await Promise.all([
-    prisma.service.count(),
-
-    prisma.service.count({
-      where: {
-        status: "ACTIVE",
-      },
+    prisma.order.count({
+      where: { status: "NEW" },
     }),
-
-    prisma.pricingPlan.count(),
-
-    prisma.order.count(),
-
     prisma.order.count({
       where: {
-        status: "NEW",
+        status: { in: ["IN_REVIEW", "ACCEPTED", "OPEN", "PLANNED"] },
       },
     }),
-
+    prisma.order.count({
+      where: { status: "COMPLETED" },
+    }),
     prisma.order.findMany({
-      take: 5,
-      orderBy: {
-        createdAt: "desc",
-      },
-      include: {
-        pricingPlan: true,
-      },
+      take: 8,
+      orderBy: { createdAt: "desc" },
+      include: { pricingPlan: true },
     }),
   ]);
 
   return (
-    <div className="mx-auto w-full max-w-[1400px]">
-      {/* Heading */}
-      <div className="mb-8">
-        <span className="inline-flex rounded-full bg-[#eaf5ff] px-3 py-1 text-xs font-black uppercase tracking-wide text-[#0868ad]">
-          Tableau de bord
-        </span>
+    <main className="mx-auto w-full max-w-[1400px] pb-12">
+      {/* Header */}
+      <div className="mb-8 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <span className="inline-flex items-center gap-2 rounded-full bg-[#eaf2ff] px-3 py-1.5 text-xs font-bold text-[#2563eb]">
+            <span className="h-2 w-2 rounded-full bg-[#2563eb]" />
+            Espace professionnel
+          </span>
 
-        <h2 className="mt-4 text-3xl font-black tracking-tight text-[#032f55] sm:text-4xl">
-          Vue d&apos;ensemble
-        </h2>
+          <h1 className="mt-4 text-3xl font-extrabold tracking-tight text-[#142d4e] sm:text-4xl">
+            Tableau de bord
+          </h1>
 
-        <p className="mt-2 max-w-[650px] text-sm leading-6 text-[#677789]">
-          Gérez vos services, vos formules de prix et les demandes reçues
-          depuis le site.
-        </p>
+          <p className="mt-2 text-sm leading-6 text-[#64748b]">
+            Retrouvez vos demandes et suivez vos interventions
+            au même endroit.
+          </p>
+        </div>
+
+        <Link
+          href="/admin/orders"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#2563eb] px-5 text-sm font-bold text-white shadow-sm transition hover:bg-[#1d4ed8]"
+        >
+          Voir les demandes
+          <span aria-hidden="true">→</span>
+        </Link>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          title="Services"
-          value={serviceCount}
-          description={`${activeServices} actifs`}
-          icon="🛠"
-        />
+      {/* Statistics */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Link
+          href="/admin/orders"
+          className="group rounded-2xl border border-[#e5eaf1] bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-200 hover:shadow-md"
+        >
+          <div className="flex items-start justify-between">
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-xl">
+              🔔
+            </span>
+            <span className="text-xs font-semibold text-[#94a3b8]">
+              À traiter
+            </span>
+          </div>
 
-        <StatCard
-          title="Formules"
-          value={pricingCount}
-          description="Formules de service à vie"
-          icon="💰"
-        />
+          <div className="mt-5 text-4xl font-extrabold tracking-tight text-[#142d4e]">
+            {newCount}
+          </div>
+          <p className="mt-1 text-sm font-bold text-[#142d4e]">
+            Nouvelles demandes
+          </p>
+          <p className="mt-1 text-xs text-[#64748b]">
+            En attente de votre attention
+          </p>
+        </Link>
 
-        <StatCard
-          title="Demandes"
-          value={orderCount}
-          description="Demandes reçues au total"
-          icon="📋"
-        />
+        <Link
+          href="/admin/orders"
+          className="group rounded-2xl border border-[#e5eaf1] bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-amber-200 hover:shadow-md"
+        >
+          <div className="flex items-start justify-between">
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-50 text-xl">
+              🕒
+            </span>
+            <span className="text-xs font-semibold text-[#94a3b8]">
+              Suivi
+            </span>
+          </div>
 
-        <StatCard
-          title="À traiter"
-          value={newOrderCount}
-          description="Nouvelles demandes"
-          icon="🔔"
-        />
+          <div className="mt-5 text-4xl font-extrabold tracking-tight text-[#142d4e]">
+            {inProgressCount}
+          </div>
+          <p className="mt-1 text-sm font-bold text-[#142d4e]">
+            En cours
+          </p>
+          <p className="mt-1 text-xs text-[#64748b]">
+            En révision, ouvertes ou planifiées
+          </p>
+        </Link>
+
+        <Link
+          href="/admin/orders"
+          className="group rounded-2xl border border-[#e5eaf1] bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-md"
+        >
+          <div className="flex items-start justify-between">
+            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-xl">
+              ✓
+            </span>
+            <span className="text-xs font-semibold text-[#94a3b8]">
+              Historique
+            </span>
+          </div>
+
+          <div className="mt-5 text-4xl font-extrabold tracking-tight text-[#142d4e]">
+            {completedCount}
+          </div>
+          <p className="mt-1 text-sm font-bold text-[#142d4e]">
+            Terminées
+          </p>
+          <p className="mt-1 text-xs text-[#64748b]">
+            Interventions finalisées
+          </p>
+        </Link>
       </div>
 
-      {/* Bottom area */}
-      <div className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-[1.4fr_0.6fr]">
-        {/* Recent orders */}
-        <section className="overflow-hidden rounded-[22px] border border-[#113b5e]/10 bg-white shadow-[0_10px_30px_rgba(0,38,70,0.06)]">
-          <div className="flex items-center justify-between gap-4 border-b border-[#113b5e]/10 px-6 py-5">
+      {/* Recent requests + quick access */}
+      <div className="mt-7 grid gap-6 xl:grid-cols-[1.65fr_0.75fr]">
+        <section className="overflow-hidden rounded-2xl border border-[#e5eaf1] bg-white shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#edf0f5] px-6 py-5">
             <div>
-              <h3 className="text-lg font-black text-[#032f55]">
+              <h2 className="text-lg font-extrabold text-[#142d4e]">
                 Demandes récentes
-              </h3>
-
-              <p className="mt-1 text-xs text-[#677789]">
-                Les dernières demandes envoyées par les clients
+              </h2>
+              <p className="mt-1 text-xs text-[#64748b]">
+                Cliquez sur une demande pour consulter ses détails.
               </p>
             </div>
 
             <Link
               href="/admin/orders"
-              className="text-sm font-bold text-[#0868ad] transition hover:opacity-70"
+              className="text-sm font-bold text-[#2563eb] hover:text-[#1d4ed8]"
             >
-              Voir tout
+              Tout afficher →
             </Link>
           </div>
 
           {recentOrders.length === 0 ? (
-            <div className="px-6 py-14 text-center">
-              <div className="text-4xl">
+            <div className="flex flex-col items-center px-6 py-16 text-center">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[#f1f5f9] text-3xl">
                 📭
               </div>
-
-              <h4 className="mt-4 font-bold text-[#032f55]">
-                Aucune demande
-              </h4>
-
-              <p className="mt-2 text-sm text-[#677789]">
-                Les nouvelles demandes apparaîtront ici.
+              <h3 className="mt-5 text-base font-bold text-[#142d4e]">
+                Aucune demande pour le moment
+              </h3>
+              <p className="mt-2 max-w-sm text-sm leading-6 text-[#64748b]">
+                Les demandes envoyées depuis votre site
+                apparaîtront automatiquement ici.
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-[#113b5e]/10">
-              {recentOrders.map((order: RecentOrder) => (
-                <div
-                  key={order.id}
-                  className="flex flex-col gap-4 px-6 py-5 transition hover:bg-[#f8fbfe] sm:flex-row sm:items-center sm:justify-between"
-                >
-                  <div className="min-w-0">
-                    <div className="font-bold text-[#032f55]">
-                      {order.name}
-                    </div>
+            <div className="divide-y divide-[#edf0f5]">
+              {recentOrders.map((order) => {
+                const status =
+                  statusConfig[order.status] ?? {
+                    label: "Statut inconnu",
+                    className: "bg-slate-100 text-slate-600 ring-slate-200",
+                  };
 
-                    <div className="mt-1 text-xs text-[#677789]">
-                      {order.phone}
-                    </div>
-
-                    {order.pricingPlan && (
-                      <div className="mt-2 text-xs font-semibold text-[#0868ad]">
-                        {order.pricingPlan.age}
+                return (
+                  <Link
+                    key={order.id}
+                    href={`/admin/orders/${order.id}`}
+                    className="group flex flex-col gap-3 px-6 py-5 transition hover:bg-[#f8faff] sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="flex min-w-0 items-start gap-3">
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#edf4ff] text-sm font-extrabold text-[#2563eb]">
+                        {order.name.charAt(0).toUpperCase()}
                       </div>
-                    )}
-                  </div>
 
-                  <div className="flex shrink-0 items-center gap-3">
-                    <span
-                      className={`rounded-full px-3 py-1 text-xs font-bold ${
-                        order.status === "NEW"
-                          ? "bg-[#eaf5ff] text-[#0868ad]"
-                          : order.status === "IN_REVIEW"
-                            ? "bg-[#fff6d8] text-[#8a6b00]"
-                            : order.status === "ACCEPTED"
-                              ? "bg-[#e9f8ef] text-[#169454]"
-                              : order.status === "COMPLETED"
-                                ? "bg-[#edf7f1] text-[#137a48]"
-                                : "bg-[#fcecec] text-[#b42318]"
-                      }`}
-                    >
-                      {formatOrderStatus(order.status)}
-                    </span>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-bold text-[#142d4e] group-hover:text-[#2563eb]">
+                          {order.name}
+                        </p>
+                        <p className="mt-1 text-xs text-[#64748b]">
+                          {order.pricingPlan?.title ??
+                            "Demande de service"}
+                        </p>
+                        <p className="mt-1 text-xs text-[#94a3b8]">
+                          {order.phone}
+                        </p>
+                      </div>
+                    </div>
 
-                    <span className="text-xs text-[#677789]">
-                      {order.createdAt.toLocaleDateString("fr-CA")}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                    <div className="flex items-center justify-between gap-4 pl-14 sm:justify-end sm:pl-0">
+                      <div className="text-left sm:text-right">
+                        <span
+                          className={`inline-flex rounded-full px-3 py-1 text-xs font-bold ring-1 ring-inset ${status.className}`}
+                        >
+                          {status.label}
+                        </span>
+                        <p className="mt-2 text-xs text-[#94a3b8]">
+                          {formatDate(order.createdAt)}
+                        </p>
+                      </div>
+
+                      <span className="text-lg text-[#94a3b8] transition group-hover:translate-x-1 group-hover:text-[#2563eb]">
+                        →
+                      </span>
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           )}
         </section>
 
-        {/* Quick actions */}
-        <section className="rounded-[22px] border border-[#113b5e]/10 bg-white p-6 shadow-[0_10px_30px_rgba(0,38,70,0.06)]">
-          <h3 className="text-lg font-black text-[#032f55]">
-            Actions rapides
-          </h3>
+        {/* Sidebar */}
+        <aside className="space-y-6">
+          <section
+            className="rounded-2xl border border-[#e5eaf1] bg-white shadow-sm"
+            style={{ padding: "24px" }}
+          >
+            <h2 className="text-lg font-extrabold text-[#142d4e]">
+              Accès rapide
+            </h2>
+            <p className="mt-1 text-xs text-[#64748b]">
+              Les outils dont vous avez besoin.
+            </p>
 
-          <p className="mt-1 text-xs text-[#677789]">
-            Accès aux sections principales.
-          </p>
+            <div className="mt-5 space-y-3">
+              <Link
+                href="/admin/orders"
+                className="group flex items-center gap-3 rounded-xl border border-[#e5eaf1] p-4 transition hover:border-blue-200 hover:bg-blue-50/50"
+              >
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-xl">
+                  📋
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold text-[#142d4e]">
+                    Demandes
+                  </span>
+                  <span className="mt-1 block text-xs text-[#64748b]">
+                    Consulter et suivre les clients
+                  </span>
+                </span>
+                <span className="text-[#94a3b8] group-hover:text-[#2563eb]">
+                  →
+                </span>
+              </Link>
 
-          <div className="mt-6 space-y-3">
-            <Link
-              href="/admin/services"
-              className="flex items-center justify-between rounded-[14px] border border-[#113b5e]/10 px-4 py-4 text-sm font-bold text-[#032f55] transition hover:border-[#0868ad]/30 hover:bg-[#f8fbfe]"
+              <Link
+                href="/admin/pricing"
+                className="group flex items-center gap-3 rounded-xl border border-[#e5eaf1] p-4 transition hover:border-blue-200 hover:bg-blue-50/50"
+              >
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-xl">
+                  🏷️
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-bold text-[#142d4e]">
+                    Offres et tarifs
+                  </span>
+                  <span className="mt-1 block text-xs text-[#64748b]">
+                    Modifier les formules et les prix
+                  </span>
+                </span>
+                <span className="text-[#94a3b8] group-hover:text-[#2563eb]">
+                  →
+                </span>
+              </Link>
+            </div>
+          </section>
+
+          {/* Help card */}
+          <section
+              className="rounded-2xl bg-[#142d4e] text-white shadow-sm"
+              style={{ padding: "24px" }}
             >
-              <span>Gérer les services</span>
-              <span>→</span>
-            </Link>
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 text-2xl">
+              💡
+            </div>
 
-            <Link
-              href="/admin/pricing"
-              className="flex items-center justify-between rounded-[14px] border border-[#113b5e]/10 px-4 py-4 text-sm font-bold text-[#032f55] transition hover:border-[#0868ad]/30 hover:bg-[#f8fbfe]"
-            >
-              <span>Gérer les tarifs</span>
-              <span>→</span>
-            </Link>
+            <h3 className="mt-5 text-lg font-extrabold">
+              Tout est au même endroit
+            </h3>
+
+            <p className="mt-2 text-sm leading-6 text-white/70">
+              Consultez les demandes reçues, contactez vos
+              clients et gérez vos offres en quelques clics.
+            </p>
 
             <Link
               href="/admin/orders"
-              className="flex items-center justify-between rounded-[14px] border border-[#113b5e]/10 px-4 py-4 text-sm font-bold text-[#032f55] transition hover:border-[#0868ad]/30 hover:bg-[#f8fbfe]"
+              className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-white hover:underline"
             >
-              <span>Voir les demandes</span>
-              <span>→</span>
+              Gérer mes demandes →
             </Link>
-
-            <Link
-              href="/admin/settings"
-              className="flex items-center justify-between rounded-[14px] border border-[#113b5e]/10 px-4 py-4 text-sm font-bold text-[#032f55] transition hover:border-[#0868ad]/30 hover:bg-[#f8fbfe]"
-            >
-              <span>Paramètres du site</span>
-              <span>→</span>
-            </Link>
-          </div>
-        </section>
+          </section>
+        </aside>
       </div>
-    </div>
+    </main>
   );
-}
-
-function formatOrderStatus(status: RecentOrder["status"]) {
-  switch (status) {
-    case "NEW":
-      return "Nouvelle";
-
-    case "IN_REVIEW":
-      return "En révision";
-
-    case "ACCEPTED":
-      return "Acceptée";
-
-    case "COMPLETED":
-      return "Terminée";
-
-    case "CANCELLED":
-      return "Annulée";
-
-    default:
-      return status;
-  }
 }
