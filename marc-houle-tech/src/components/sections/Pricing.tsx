@@ -92,9 +92,8 @@ export default async function Pricing() {
         {lifetimePlans.length > 0 && (
           <>
             <Reveal className="section-header lifetime-pricing-header">
-              <span className="section-label">
-                Service à vie
-              </span>
+              <br></br>
+              <span className="section-label">Tarifs à vie</span>
 
               <h2 className="section-heading">
                 Nos formules de service à vie

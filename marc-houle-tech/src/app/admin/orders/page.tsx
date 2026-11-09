@@ -61,7 +61,7 @@ export default async function AdminOrdersPage() {
                   <div className="mt-2 flex flex-wrap gap-2 text-xs">
                     {order.pricingPlan && (
                       <span className="rounded-full bg-[#eaf5ff] px-3 py-1 font-bold text-[#0868ad]">
-                        {order.pricingPlan.age}
+                        {order.pricingPlan.title}
                       </span>
                     )}
 

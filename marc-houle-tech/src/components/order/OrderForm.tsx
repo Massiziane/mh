@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -6,16 +7,71 @@ import {
   useState,
 } from "react";
 
-export default function OrderForm() {
+type OrderFormProps = {
+  pricingPlanId: string;
+  contractRequired?: boolean;
+};
+
+export default function OrderForm({
+  pricingPlanId,
+  contractRequired = true,
+}: OrderFormProps) {
   const [submitted, setSubmitted] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const [photoNames, setPhotoNames] = useState<string[]>([]);
   const [contractName, setContractName] = useState("");
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  const inputClass =
+    "w-full rounded-[14px] border border-[#113b5e]/15 bg-[#f8fbfe] px-4 py-3.5 text-[16px] text-[#182433] outline-none transition placeholder:text-[#677789]/55 focus:border-[#0868ad] focus:bg-white focus:ring-4 focus:ring-[#0868ad]/10";
+
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>
+  ) {
     event.preventDefault();
 
-    setSubmitted(true);
+    if (loading) return;
+
+    setLoading(true);
+    setError("");
+
+    try {
+      const formData = new FormData(event.currentTarget);
+
+      formData.set("pricingPlanId", pricingPlanId);
+
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        let message =
+          "Impossible d'envoyer votre demande. Veuillez réessayer.";
+
+        try {
+          const data = await response.json();
+          message = data.error || data.message || message;
+        } catch {
+          // Keep default error message
+        }
+
+        throw new Error(message);
+      }
+
+      setSubmitted(true);
+    } catch (err) {
+      console.error("Order submission error:", err);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Une erreur inattendue est survenue."
+      );
+    } finally {
+      setLoading(false);
+    }
   }
 
   function handlePhotosChange(
@@ -42,27 +98,30 @@ export default function OrderForm() {
         </div>
 
         <h3 className="mt-5 text-2xl font-bold text-[#032f55]">
-          Demande prête
+          Demande envoyée !
         </h3>
 
         <p className="mx-auto mt-3 max-w-[420px] text-sm leading-6 text-[#677789]">
-          Votre demande et votre contrat signé sont prêts à être
-          transmis.
+          Votre demande a été transmise avec succès.
+          Notre équipe prendra connaissance de votre
+          demande et vous contactera prochainement.
         </p>
 
         <button
           type="button"
-          onClick={() => setSubmitted(false)}
+          onClick={() => {
+            setSubmitted(false);
+            setPhotoNames([]);
+            setContractName("");
+            setError("");
+          }}
           className="mt-6 inline-flex min-h-[50px] items-center justify-center rounded-full border border-[#032f55]/15 bg-white px-6 font-bold text-[#032f55] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
         >
-          Retour au formulaire
+          Faire une autre demande
         </button>
       </div>
     );
   }
-
-  const inputClass =
-    "w-full rounded-[14px] border border-[#113b5e]/15 bg-[#f8fbfe] px-4 py-3.5 text-[16px] text-[#182433] outline-none transition placeholder:text-[#677789]/55 focus:border-[#0868ad] focus:bg-white focus:ring-4 focus:ring-[#0868ad]/10";
 
   return (
     <form
@@ -85,6 +144,7 @@ export default function OrderForm() {
             name="name"
             type="text"
             required
+            disabled={loading}
             placeholder="Votre nom complet"
             className={inputClass}
           />
@@ -104,6 +164,7 @@ export default function OrderForm() {
             name="phone"
             type="tel"
             required
+            disabled={loading}
             placeholder="514-000-0000"
             className={inputClass}
           />
@@ -123,6 +184,7 @@ export default function OrderForm() {
             name="address"
             type="text"
             required
+            disabled={loading}
             placeholder="Votre adresse"
             className={inputClass}
           />
@@ -141,6 +203,7 @@ export default function OrderForm() {
             id="availability"
             name="availability"
             required
+            disabled={loading}
             rows={3}
             placeholder="Ex. Lundi après 14 h, mercredi matin..."
             className={`${inputClass} resize-y`}
@@ -160,13 +223,14 @@ export default function OrderForm() {
             id="description"
             name="description"
             required
+            disabled={loading}
             rows={5}
             placeholder="Expliquez le problème, l'appareil concerné ou le service dont vous avez besoin..."
             className={`${inputClass} resize-y`}
           />
         </div>
 
-        {/* Service photos */}
+        {/* Service Photos */}
         <div>
           <div className="mb-2 flex items-center justify-between gap-4">
             <label
@@ -204,6 +268,7 @@ export default function OrderForm() {
             type="file"
             accept="image/*"
             multiple
+            disabled={loading}
             onChange={handlePhotosChange}
             className="hidden"
           />
@@ -215,9 +280,9 @@ export default function OrderForm() {
               </p>
 
               <ul className="space-y-1">
-                {photoNames.map((name) => (
+                {photoNames.map((name, index) => (
                   <li
-                    key={name}
+                    key={`${name}-${index}`}
                     className="truncate text-xs text-[#677789]"
                   >
                     ✓ {name}
@@ -228,11 +293,11 @@ export default function OrderForm() {
           )}
         </div>
 
-        {/* Signed contract */}
+        {/* Signed Contract */}
         <div className="rounded-[18px] border border-[#d4af37]/30 bg-[#fffdf7] p-5">
           <div className="mb-4">
             <span className="inline-flex rounded-full bg-[#f4dc88]/35 px-3 py-1 text-xs font-black uppercase tracking-wide text-[#705b13]">
-              Requis
+              {contractRequired ? "Requis" : "Facultatif"}
             </span>
 
             <h3 className="mt-3 text-lg font-bold text-[#032f55]">
@@ -240,9 +305,12 @@ export default function OrderForm() {
             </h3>
 
             <p className="mt-2 text-sm leading-6 text-[#677789]">
-              Téléchargez le contrat ci-dessous, signez-le, puis
-              téléversez votre copie signée avant d&apos;envoyer votre
-              demande.
+              Téléchargez le contrat disponible sur
+              cette page, signez-le, puis téléversez
+              votre copie signée
+              {contractRequired
+                ? " avant d'envoyer votre demande."
+                : " si vous en disposez."}
             </p>
           </div>
 
@@ -268,7 +336,8 @@ export default function OrderForm() {
             name="signedContract"
             type="file"
             accept=".pdf,image/jpeg,image/png"
-            required
+            required={contractRequired}
+            disabled={loading}
             onChange={handleContractChange}
             className="hidden"
           />
@@ -292,12 +361,25 @@ export default function OrderForm() {
           )}
         </div>
 
+        {/* Error */}
+        {error && (
+          <div
+            role="alert"
+            className="rounded-[14px] border border-red-200 bg-red-50 px-4 py-4 text-sm font-medium text-red-700"
+          >
+            {error}
+          </div>
+        )}
+
         {/* Submit */}
         <button
           type="submit"
-          className="mt-2 flex min-h-[54px] w-full items-center justify-center rounded-full bg-gradient-to-br from-[#d4af37] to-[#efca55] px-6 text-base font-black text-[#10283d] shadow-[0_15px_35px_rgba(212,175,55,0.3)] transition hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(212,175,55,0.42)] active:translate-y-0"
+          disabled={loading}
+          className="mt-2 flex min-h-[54px] w-full items-center justify-center rounded-full bg-gradient-to-br from-[#d4af37] to-[#efca55] px-6 text-base font-black text-[#10283d] shadow-[0_15px_35px_rgba(212,175,55,0.3)] transition hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(212,175,55,0.42)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Envoyer ma demande
+          {loading
+            ? "Envoi de votre demande..."
+            : "Envoyer ma demande"}
         </button>
 
       </div>

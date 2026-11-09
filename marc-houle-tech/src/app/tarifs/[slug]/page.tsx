@@ -1,3 +1,4 @@
+
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -33,6 +34,7 @@ export default async function PricingDetailPage({
       <section className="pricing-section">
         <div className="container">
           <div className="mx-auto flex max-w-[600px] flex-col items-center px-4 py-16 text-center md:py-24">
+
             {/* Back */}
             <Link
               href="/#tarifs"
@@ -78,9 +80,7 @@ export default async function PricingDetailPage({
               </h2>
 
               <div className="mx-auto max-w-[480px]">
-                <p>
-                  {plan.description}
-                </p>
+                <p>{plan.description}</p>
 
                 {plan.additionalDescription && (
                   <p className="mt-5 whitespace-pre-line">
@@ -133,16 +133,14 @@ export default async function PricingDetailPage({
 
               {plan.galleryUrls.length > 0 ? (
                 <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
-                  {plan.galleryUrls.map(
-                    (image, index) => (
-                      <img
-                        key={`${image}-${index}`}
-                        src={image}
-                        alt={`${plan.title} - ${index + 1}`}
-                        className="mx-auto aspect-[4/3] w-full rounded-2xl object-cover"
-                      />
-                    )
-                  )}
+                  {plan.galleryUrls.map((image, index) => (
+                    <img
+                      key={`${image}-${index}`}
+                      src={image}
+                      alt={`${plan.title} - ${index + 1}`}
+                      className="mx-auto aspect-[4/3] w-full rounded-2xl object-cover"
+                    />
+                  ))}
                 </div>
               ) : (
                 <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
@@ -160,16 +158,24 @@ export default async function PricingDetailPage({
               )}
             </div>
 
-            {/* Contract - lifetime plans only */}
-            {!isRegularService && (
+            {/* ================================= */}
+            {/* CONTRACT - REGULAR SERVICE */}
+            {/* ================================= */}
+
+            {isRegularService && (
               <article className="price-card mt-12 w-full text-center">
-                <h2 className="text-2xl font-bold">
-                  Contrat de service
+                <span className="section-label">
+                  Service régulier
+                </span>
+
+                <h2 className="mt-5 text-2xl font-bold">
+                  Contrat de service régulier
                 </h2>
 
                 <p className="mx-auto mt-5 max-w-[460px]">
-                  Consultez le contrat complet associé à
-                  cette formule de service à vie.
+                  Consultez et téléchargez le contrat
+                  associé au service régulier avant de
+                  soumettre votre demande.
                 </p>
 
                 <div className="mt-7 flex justify-center">
@@ -179,10 +185,11 @@ export default async function PricingDetailPage({
                       download
                       className="btn btn-primary"
                     >
-                      Télécharger le contrat
+                      Télécharger le contrat régulier
                     </a>
                   ) : (
                     <button
+                      type="button"
                       disabled
                       className="btn btn-primary cursor-not-allowed opacity-40"
                     >
@@ -190,10 +197,66 @@ export default async function PricingDetailPage({
                     </button>
                   )}
                 </div>
+
+                <p className="mt-5 text-sm opacity-60">
+                  Ce document est associé au service
+                  régulier.
+                </p>
               </article>
             )}
 
-            {/* Order */}
+            {/* ================================= */}
+            {/* CONTRACT - LIFETIME SERVICE */}
+            {/* ================================= */}
+
+            {!isRegularService && (
+              <article className="price-card mt-12 w-full text-center">
+                <span className="section-label">
+                  Service à vie
+                </span>
+
+                <h2 className="mt-5 text-2xl font-bold">
+                  Contrat de service à vie
+                </h2>
+
+                <p className="mx-auto mt-5 max-w-[460px]">
+                  Consultez et téléchargez le contrat
+                  correspondant à la formule
+                  « {plan.title} » avant de soumettre
+                  votre demande.
+                </p>
+
+                <div className="mt-7 flex justify-center">
+                  {plan.contractUrl ? (
+                    <a
+                      href={plan.contractUrl}
+                      download
+                      className="btn btn-primary"
+                    >
+                      Télécharger le contrat à vie
+                    </a>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled
+                      className="btn btn-primary cursor-not-allowed opacity-40"
+                    >
+                      Contrat bientôt disponible
+                    </button>
+                  )}
+                </div>
+
+                <p className="mt-5 text-sm opacity-60">
+                  Ce document est spécifique à la formule
+                  « {plan.title} ».
+                </p>
+              </article>
+            )}
+
+            {/* ================================= */}
+            {/* ORDER FORM */}
+            {/* ================================= */}
+
             <section className="mt-16 w-full">
               <div className="mb-8 text-center">
                 <span className="section-label">
@@ -211,8 +274,12 @@ export default async function PricingDetailPage({
                 </p>
               </div>
 
-              <OrderForm />
+              <OrderForm
+                  pricingPlanId={plan.id}
+                  contractRequired={!isRegularService}
+                />
             </section>
+
           </div>
         </div>
       </section>
