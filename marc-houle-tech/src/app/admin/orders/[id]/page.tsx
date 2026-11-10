@@ -260,14 +260,22 @@ export default async function AdminOrderDetailPage({
             )}
 
             {order.signedContractUrl && (
-              <a
-                href={order.signedContractUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-4 block text-sm font-semibold text-[#2563eb] hover:underline"
-              >
-                Consulter le contrat signé →
-              </a>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <a
+                  href={`/api/admin/contracts/${order.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center rounded-xl bg-[#142d4e] px-4 py-3 text-sm font-bold text-white hover:bg-[#23476f]"
+                >
+                  Voir le contrat signé
+                </a>
+                <a
+                  href={`/api/admin/contracts/${order.id}?download=1`}
+                  className="inline-flex items-center rounded-xl border border-[#dbe3ed] bg-white px-4 py-3 text-sm font-bold text-[#142d4e] hover:bg-[#f8fafc]"
+                >
+                  Télécharger le contrat
+                </a>
+              </div>
             )}
 
             {order.images.length === 0 &&

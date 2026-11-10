@@ -81,12 +81,27 @@ export default async function AdminPricingPage() {
                 </div>
               )}
 
-              <Link
-                href={`/admin/pricing/${plan.id}`}
-                className="mt-6 flex items-center justify-center rounded-[13px] border border-[#113b5e]/10 px-4 py-3 text-sm font-black !text-[#032f55] hover:bg-[#f8fbfe]"
-              >
-                Modifier la formule
-              </Link>
+              <div className="mt-6 flex flex-col gap-3">
+                {plan.contractUrl && (
+                  <a
+                    href={plan.contractUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 rounded-[13px] border border-[#0868ad]/20 bg-[#edf6fd] px-4 py-3 text-sm font-black !text-[#0868ad] transition hover:border-[#0868ad]/40 hover:bg-[#e1f0fb]"
+                  >
+                    <span aria-hidden="true">📄</span>
+                    Voir le contrat PDF
+                    <span aria-hidden="true">↗</span>
+                  </a>
+                )}
+
+                <Link
+                  href={`/admin/pricing/${plan.id}`}
+                  className="flex items-center justify-center rounded-[13px] border border-[#113b5e]/10 px-4 py-3 text-sm font-black !text-[#032f55] hover:bg-[#f8fbfe]"
+                >
+                  Modifier la formule
+                </Link>
+              </div>
             </article>
           ))}
         </div>

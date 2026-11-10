@@ -7,17 +7,8 @@ import Reveal from "@/components/ui/Reveal";
 
 export default async function Pricing() {
   const pricingPlans = await prisma.pricingPlan.findMany({
-    where: {
-      active: true,
-    },
-    orderBy: [
-      {
-        sortOrder: "asc",
-      },
-      {
-        price: "asc",
-      },
-    ],
+    where: { active: true },
+    orderBy: [{ sortOrder: "asc" }, { price: "asc" }],
   });
 
   const regularService = pricingPlans.find(
@@ -33,11 +24,9 @@ export default async function Pricing() {
       <div className="container">
         <Reveal className="section-header">
           <span className="section-label">Tarifs</span>
-
           <h2 className="section-heading">
             Une expertise sur laquelle vous pouvez compter.
           </h2>
-
           <p className="section-description">
             Choisissez le service régulier à l&apos;heure ou profitez
             d&apos;une formule de service à vie, sans abonnement mensuel
@@ -51,38 +40,43 @@ export default async function Pricing() {
             <div className="flex w-full justify-center">
               <article className="price-card w-full max-w-[340px]">
                 {regularService.badge && (
-                  <span className="popular-badge">
-                    {regularService.badge}
-                  </span>
+                  <span className="popular-badge">{regularService.badge}</span>
                 )}
 
-                <div className="price-age">
-                  {regularService.age}
-                </div>
-
+                <div className="price-age">{regularService.age}</div>
                 <div className="price">
                   {Number(regularService.price)}
                   <sup>$</sup>
                 </div>
-
-                <p>
-                  {regularService.description}
-                </p>
+                <p>{regularService.description}</p>
 
                 <ul className="price-features">
-                  <li>
-                    {Number(regularService.price).toFixed(2)} $ / heure
-                  </li>
+                  <li>{Number(regularService.price).toFixed(2)} $ / heure</li>
                   <li>Aucun contrat à vie requis</li>
                   <li>Service selon vos besoins</li>
                 </ul>
 
-                <Link
-                  href={`/tarifs/${regularService.slug}`}
-                  className="btn btn-white"
-                >
-                  En savoir plus
-                </Link>
+                <div className="flex flex-col gap-3">
+                  <Link
+                    href={`/tarifs/${regularService.slug}`}
+                    className="btn btn-white"
+                  >
+                    En savoir plus
+                  </Link>
+
+                  {regularService.contractUrl && (
+                    <a
+                      href={regularService.contractUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#0868ad]/25 bg-[#eef7ff] px-4 py-3 text-center text-sm font-bold text-[#0868ad] transition hover:border-[#0868ad]/50 hover:bg-[#dcefff]"
+                      aria-label="Voir le contrat PDF du service régulier"
+                    >
+                      <span aria-hidden="true">📄</span>
+                      Voir le contrat PDF
+                    </a>
+                  )}
+                </div>
               </article>
             </div>
           </Reveal>
@@ -92,13 +86,9 @@ export default async function Pricing() {
         {lifetimePlans.length > 0 && (
           <>
             <Reveal className="section-header lifetime-pricing-header">
-              <br></br>
+              <br />
               <span className="section-label">Tarifs à vie</span>
-
-              <h2 className="section-heading">
-                Nos formules de service à vie
-              </h2>
-
+              <h2 className="section-heading">Nos formules de service à vie</h2>
               <p className="section-description">
                 Pour ceux qui souhaitent une assistance à long terme,
                 choisissez la formule qui vous convient.
@@ -107,57 +97,53 @@ export default async function Pricing() {
 
             <div className="pricing-grid">
               {lifetimePlans.map((plan, index) => (
-                <Reveal
-                  key={plan.id}
-                  delay={index * 80}
-                >
-                  <Link
-                    href={`/tarifs/${plan.slug}`}
-                    className="block h-full"
+                <Reveal key={plan.id} delay={index * 80}>
+                  <article
+                    className={`price-card flex h-full flex-col transition-transform duration-200 hover:-translate-y-1 ${
+                      plan.featured ? "featured" : ""
+                    }`}
                   >
-                    <article
-                      className={`price-card h-full cursor-pointer transition-transform duration-200 hover:-translate-y-1 ${
-                        plan.featured ? "featured" : ""
-                      }`}
-                    >
-                      {plan.badge && (
-                        <span className="popular-badge">
-                          {plan.badge}
-                        </span>
-                      )}
+                    {plan.badge && (
+                      <span className="popular-badge">{plan.badge}</span>
+                    )}
 
-                      <div className="price-age">
-                        {plan.age}
-                      </div>
+                    <div className="price-age">{plan.age}</div>
+                    <div className="price">
+                      {Number(plan.price)}
+                      <sup>$</sup>
+                    </div>
+                    <p>{plan.description}</p>
 
-                      <div className="price">
-                        {Number(plan.price)}
-                        <sup>$</sup>
-                      </div>
+                    <ul className="price-features">
+                      {pricingFeatures.map((feature) => (
+                        <li key={feature}>{feature}</li>
+                      ))}
+                    </ul>
 
-                      <p>
-                        {plan.description}
-                      </p>
-
-                      <ul className="price-features">
-                        {pricingFeatures.map((feature) => (
-                          <li key={feature}>
-                            {feature}
-                          </li>
-                        ))}
-                      </ul>
-
-                      <div
+                    <div className="mt-auto flex flex-col gap-3 pt-4">
+                      <Link
+                        href={`/tarifs/${plan.slug}`}
                         className={`btn ${
-                          plan.featured
-                            ? "btn-primary"
-                            : "btn-white"
+                          plan.featured ? "btn-primary" : "btn-white"
                         }`}
                       >
                         En savoir plus
-                      </div>
-                    </article>
-                  </Link>
+                      </Link>
+
+                      {plan.contractUrl && (
+                        <a
+                          href={plan.contractUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-[#0868ad]/25 bg-[#eef7ff] px-4 py-3 text-center text-sm font-bold text-[#0868ad] transition hover:border-[#0868ad]/50 hover:bg-[#dcefff]"
+                          aria-label={`Voir le contrat PDF pour ${plan.title}`}
+                        >
+                          <span aria-hidden="true">📄</span>
+                          Voir le contrat PDF
+                        </a>
+                      )}
+                    </div>
+                  </article>
                 </Reveal>
               ))}
             </div>

@@ -10,11 +10,13 @@ import {
 type OrderFormProps = {
   pricingPlanId: string;
   contractRequired?: boolean;
+  contractUrl?: string | null;
 };
 
 export default function OrderForm({
   pricingPlanId,
   contractRequired = true,
+  contractUrl,
 }: OrderFormProps) {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -22,6 +24,12 @@ export default function OrderForm({
 
   const [photoNames, setPhotoNames] = useState<string[]>([]);
   const [contractName, setContractName] = useState("");
+  const [fileError, setFileError] = useState("");
+  const downloadableContract =
+    contractUrl?.startsWith("/contracts/") &&
+    contractUrl.toLowerCase().endsWith(".pdf")
+      ? contractUrl
+      : null;
 
   const inputClass =
     "w-full rounded-[14px] border border-[#113b5e]/15 bg-[#f8fbfe] px-4 py-3.5 text-[16px] text-[#182433] outline-none transition placeholder:text-[#677789]/55 focus:border-[#0868ad] focus:bg-white focus:ring-4 focus:ring-[#0868ad]/10";
@@ -35,6 +43,12 @@ export default function OrderForm({
 
     setLoading(true);
     setError("");
+
+    if (fileError) {
+      setError(fileError);
+      setLoading(false);
+      return;
+    }
 
     try {
       const formData = new FormData(event.currentTarget);
@@ -80,6 +94,10 @@ export default function OrderForm({
     const files = Array.from(event.target.files ?? []);
 
     setPhotoNames(files.map((file) => file.name));
+    const invalid = files.length > 2 || files.some(
+      (file) => !["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size > 1024 * 1024
+    );
+    setFileError(invalid ? "Maximum 2 photos JPG, PNG ou WEBP de 1 Mo chacune." : "");
   }
 
   function handleContractChange(
@@ -88,6 +106,14 @@ export default function OrderForm({
     const file = event.target.files?.[0];
 
     setContractName(file?.name ?? "");
+    if (file && (
+      !["application/pdf", "image/jpeg", "image/png"].includes(file.type) ||
+      file.size > 1024 * 1024
+    )) {
+      setFileError("Le contrat doit être un PDF, JPG ou PNG de 1 Mo maximum.");
+    } else {
+      setFileError("");
+    }
   }
 
   if (submitted) {
@@ -114,6 +140,7 @@ export default function OrderForm({
             setPhotoNames([]);
             setContractName("");
             setError("");
+            setFileError("");
           }}
           className="mt-6 inline-flex min-h-[50px] items-center justify-center rounded-full border border-[#032f55]/15 bg-white px-6 font-bold text-[#032f55] shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
         >
@@ -174,7 +201,7 @@ export default function OrderForm({
         <div>
           <label
             htmlFor="email"
-            className="mb-2 block text-sm font-bold"
+            className="mb-2 block text-sm font-bold text-[#032f55]"
           >
             Adresse courriel
           </label>
@@ -187,7 +214,8 @@ export default function OrderForm({
             maxLength={254}
             autoComplete="email"
             placeholder="exemple@gmail.com"
-            className="w-full rounded-xl border border-slate-200 px-4 py-3"
+            disabled={loading}
+            className={inputClass}
           />
         </div>
 
@@ -279,7 +307,7 @@ export default function OrderForm({
             </strong>
 
             <span className="mt-1 text-xs leading-5 text-[#677789]">
-              Vous pouvez sélectionner plusieurs images
+              Maximum 2 photos (JPG, PNG, WEBP), 1 Mo chacune
             </span>
           </label>
 
@@ -287,7 +315,7 @@ export default function OrderForm({
             id="photos"
             name="photos"
             type="file"
-            accept="image/*"
+            accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
             multiple
             disabled={loading}
             onChange={handlePhotosChange}
@@ -326,14 +354,33 @@ export default function OrderForm({
             </h3>
 
             <p className="mt-2 text-sm leading-6 text-[#677789]">
-              Téléchargez le contrat disponible sur
-              cette page, signez-le, puis téléversez
-              votre copie signée
-              {contractRequired
-                ? " avant d'envoyer votre demande."
-                : " si vous en disposez."}
+              Téléchargez le document PDF correspondant à votre formule, complétez-le et signez-le,
+              puis téléversez votre copie signée
+              {contractRequired ? " avant d'envoyer votre demande." : " si vous en disposez."}
             </p>
           </div>
+
+          <div className="mb-5 rounded-[16px] border border-[#d4af37]/30 bg-white p-4 sm:p-5">
+            <p className="text-sm font-bold text-[#032f55]">1. Télécharger le contrat</p>
+            <p className="mt-1 text-xs leading-5 text-[#677789]">
+              Ouvrez le PDF, remplissez les champs et ajoutez votre signature.
+            </p>
+            {downloadableContract ? (
+              <a
+                href={downloadableContract}
+                download
+                className="mt-4 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#0868ad] px-4 py-3 text-center text-sm font-bold text-white transition hover:bg-[#032f55] sm:w-auto"
+              >
+                <span aria-hidden="true">↓</span> Télécharger le contrat (PDF)
+              </a>
+            ) : (
+              <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+                Le contrat PDF n'est pas encore disponible au téléchargement.
+              </p>
+            )}
+          </div>
+
+          <p className="mb-3 text-sm font-bold text-[#032f55]">2. Téléverser le contrat signé</p>
 
           <label
             htmlFor="signedContract"
@@ -348,7 +395,7 @@ export default function OrderForm({
             </strong>
 
             <span className="mt-1 text-xs leading-5 text-[#677789]">
-              PDF, JPG, JPEG ou PNG
+              PDF, JPG, JPEG ou PNG — 1 Mo maximum
             </span>
           </label>
 
@@ -356,7 +403,7 @@ export default function OrderForm({
             id="signedContract"
             name="signedContract"
             type="file"
-            accept=".pdf,image/jpeg,image/png"
+            accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
             required={contractRequired}
             disabled={loading}
             onChange={handleContractChange}
@@ -383,12 +430,12 @@ export default function OrderForm({
         </div>
 
         {/* Error */}
-        {error && (
+        {(error || fileError) && (
           <div
             role="alert"
             className="rounded-[14px] border border-red-200 bg-red-50 px-4 py-4 text-sm font-medium text-red-700"
           >
-            {error}
+            {error || fileError}
           </div>
         )}
 
